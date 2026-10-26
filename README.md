@@ -14,7 +14,7 @@ Banjo-Kazooie: Nuts & Bolts.
 - Checks for reNut updates
 - Workshop: browse community vehicle blueprints in a grid, download them into your save or remove them again, and share your own (through [nutstaller-workshop](https://github.com/etonedemid/nutstaller-workshop))
 - Works with mouse or a gamepad (dpad moves, A selects, LB/RB switch page, Start plays)
-- Runs on Windows and Linux (on Linux it installs the reNut AppImage; gamepad support uses SDL2 if installed)
+- Runs on Windows, Linux and Apple Silicon macOS (Linux uses the reNut AppImage; Mac uses a native app bundle)
 
 ## Usage
 
@@ -37,6 +37,28 @@ or newer. The UI is Avalonia, so either build can be made from any OS.
 
 For Linux, `./build-appimage.sh` packages it as `NutStaller/bin/NutStaller-x86_64.AppImage`.
 On Linux the launcher keeps `nutstaller.ini` and its default `reNut` folder next to the AppImage.
+
+### Apple Silicon macOS
+
+Run `./build-macos.sh` with an ARM64 .NET 8 SDK to create
+`NutStaller/bin/NutStaller.app` and `NutStaller-macos-arm64.zip`. The app is
+self-contained and includes SDL2 for controller navigation when Homebrew SDL2
+is available at build time. `DOTNET` can select a project-local SDK executable.
+
+The launcher stores its state and default installation in
+`~/Library/Application Support/NutStaller`, and reNut config/saves in
+`~/Library/Application Support/renut`. Its Mac release feed defaults to
+`ricjo4w/reNut`; set `NUTSTALLER_RENUT_REPO=owner/repo` to use another fork.
+Only Mac ARM64 or universal ZIP assets are accepted on Apple Silicon. Packages
+must contain `reNut.app/Contents/MacOS/renut`. The fork must publish a compatible
+release before download/update can install it; the launcher does not make an
+unported game release Mac-compatible.
+
+Run `dotnet run --project tests/PlatformChecks -c Release` for release-selection
+and app-bundle extraction checks. To also check a real signed release ZIP,
+pass its absolute path after `--`; this verifies extraction, executable modes
+and the extracted app's signature on macOS. The app uses an ad-hoc development signature;
+public distribution requires Developer ID signing and notarization.
 
 ### Linux compatibility
 

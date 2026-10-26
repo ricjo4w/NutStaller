@@ -204,6 +204,20 @@ namespace NutStaller.Ui
             private const string Lib = "libSDL2-2.0.so.0";
             private const uint SDL_INIT_GAMECONTROLLER = 0x2000;
 
+            static SdlBackend()
+            {
+                if (!OperatingSystem.IsMacOS()) return;
+                NativeLibrary.SetDllImportResolver(typeof(SdlBackend).Assembly, (name, assembly, path) =>
+                {
+                    if (name != Lib) return IntPtr.Zero;
+                    foreach (string candidate in new[] {
+                        System.IO.Path.Combine(AppContext.BaseDirectory, "libSDL2.dylib"),
+                        "/opt/homebrew/lib/libSDL2.dylib", "/usr/local/lib/libSDL2.dylib", "libSDL2.dylib" })
+                        if (NativeLibrary.TryLoad(candidate, out var handle)) return handle;
+                    return IntPtr.Zero;
+                });
+            }
+
             [DllImport(Lib)] private static extern int SDL_SetHint(string name, string value);
             [DllImport(Lib)] private static extern int SDL_InitSubSystem(uint flags);
             [DllImport(Lib)] private static extern int SDL_NumJoysticks();

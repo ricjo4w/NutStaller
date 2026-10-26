@@ -77,6 +77,7 @@ namespace NutStaller.Core
         {
             var entries = Directory.GetFileSystemEntries(dir);
             if (entries.Length != 1 || !Directory.Exists(entries[0])) return;
+            if (entries[0].EndsWith(".app", StringComparison.OrdinalIgnoreCase)) return;
             string inner = entries[0];
             foreach (var path in Directory.GetFileSystemEntries(inner))
             {

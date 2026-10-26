@@ -405,10 +405,7 @@ namespace NutStaller
         // Windows: asset names change between releases (renut-win-x64.zip,
         // renut.zip), so any zip will do; one that says "win" wins over one
         // that doesn't. Elsewhere: the AppImage (renut.AppImage, reNut-x86_64.AppImage).
-        private static int RenutAssetRank(string n) =>
-            !OperatingSystem.IsWindows() ? (n.EndsWith(".AppImage", StringComparison.OrdinalIgnoreCase) ? 0 : -1)
-            : !n.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? -1
-            : n.Contains("win", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        private static int RenutAssetRank(string n) => ReleasePlatform.RenutAssetRank(n);
 
         private static void MakeExecutable(string path)
         {
@@ -421,7 +418,7 @@ namespace NutStaller
         {
             try
             {
-                var asset = await GithubDownloader.GetLatestAssetAsync("masterspike52/reNut", RenutAssetRank);
+                var asset = await GithubDownloader.GetLatestAssetAsync(ReleasePlatform.RenutRepository, RenutAssetRank);
                 _latestTag = asset.Tag;
             }
             catch
@@ -445,7 +442,7 @@ namespace NutStaller
             await RunBusy(async () =>
             {
                 SetStatus("Checking for reNut updates...");
-                var asset = await GithubDownloader.GetLatestAssetAsync("masterspike52/reNut", RenutAssetRank);
+                var asset = await GithubDownloader.GetLatestAssetAsync(ReleasePlatform.RenutRepository, RenutAssetRank);
                 _latestTag = asset.Tag;
                 if (_state.RenutInstalled && _state.RenutVersion == asset.Tag)
                 {
@@ -632,17 +629,23 @@ namespace NutStaller
         {
             _state.InstallDir = installBox.Value.Trim();
             SetStatus("Looking up the latest reNut release...");
-            var asset = await GithubDownloader.GetLatestAssetAsync("masterspike52/reNut", RenutAssetRank);
+            var asset = await GithubDownloader.GetLatestAssetAsync(ReleasePlatform.RenutRepository, RenutAssetRank);
 
             SetStatus($"Downloading {asset.Name} ({asset.Tag})...");
             string download = Path.Combine(Path.GetTempPath(), asset.Name);
             await GithubDownloader.DownloadAsync(asset, download, new Progress<double>(v => progressBar.Value = v));
 
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
                 SetStatus("Unpacking reNut...");
                 GithubDownloader.ExtractZip(download, _state.InstallDir);
                 GithubDownloader.FlattenSingleFolder(_state.InstallDir);
+                if (OperatingSystem.IsMacOS())
+                {
+                    if (!File.Exists(_state.RenutExe))
+                        throw new InvalidOperationException("The Mac release must contain reNut.app/Contents/MacOS/renut.");
+                    MakeExecutable(_state.RenutExe);
+                }
                 File.Delete(download);
             }
             else

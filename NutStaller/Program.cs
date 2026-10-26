@@ -14,6 +14,8 @@ namespace NutStaller
 
     internal class App : Application
     {
+        public App() => Name = "NutStaller";
+
         public override void Initialize()
         {
             Styles.Add(new FluentTheme());

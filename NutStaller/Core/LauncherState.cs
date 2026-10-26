@@ -10,7 +10,8 @@ namespace NutStaller.Core
         public string XisoVersion { get; set; } = "";
 
         // Windows gets a zip with renut.exe, Linux a single AppImage
-        public string RenutExe => Path.Combine(InstallDir, OperatingSystem.IsWindows() ? "renut.exe" : "renut.AppImage");
+        public string RenutExe => Path.Combine(InstallDir, OperatingSystem.IsWindows() ? "renut.exe"
+            : OperatingSystem.IsMacOS() ? "reNut.app/Contents/MacOS/renut" : "renut.AppImage");
         // renut.exe reads these next to itself; the Linux build reads them from
         // its user data dir (checked with strace, it never looks beside the AppImage)
         private string ConfigDir => OperatingSystem.IsWindows() ? InstallDir : UserDataDir;
@@ -20,7 +21,9 @@ namespace NutStaller.Core
         // Documents on Windows, $XDG_DATA_HOME (~/.local/share) elsewhere. DoNotVerify:
         // by default .NET answers "" for a folder that does not exist yet (a fresh
         // home has no ~/.local/share), which would put renut/ in the working dir
-        public string UserDataDir => Path.Combine(Environment.GetFolderPath(OperatingSystem.IsWindows()
+        public string UserDataDir => OperatingSystem.IsMacOS()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "renut")
+            : Path.Combine(Environment.GetFolderPath(OperatingSystem.IsWindows()
             ? Environment.SpecialFolder.MyDocuments : Environment.SpecialFolder.LocalApplicationData,
             Environment.SpecialFolderOption.DoNotVerify), "renut");
         public string ToolsDir => Path.Combine(InstallDir, "tools");
@@ -33,7 +36,9 @@ namespace NutStaller.Core
 
         // Where the launcher keeps its own files: beside the exe, or beside the
         // .AppImage when run as one (its mount is read-only)
-        public static string HomeDir =>
+        public static string HomeDir => OperatingSystem.IsMacOS()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "NutStaller")
+            :
             Path.GetDirectoryName(Environment.GetEnvironmentVariable("APPIMAGE") ?? "") is { Length: > 0 } dir
                 ? dir : AppContext.BaseDirectory;
 
@@ -43,6 +48,7 @@ namespace NutStaller.Core
 
         public static LauncherState Load()
         {
+            Directory.CreateDirectory(HomeDir);
             var state = new LauncherState(Path.Combine(HomeDir, "reNut"));
             if (File.Exists(IniPath))
             {
@@ -62,6 +68,7 @@ namespace NutStaller.Core
 
         public void Save()
         {
+            Directory.CreateDirectory(HomeDir);
             File.WriteAllText(IniPath,
                 $"install_dir = \"{InstallDir}\"\n" +
                 $"renut_version = \"{RenutVersion}\"\n" +
